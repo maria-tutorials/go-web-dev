@@ -1,2 +1,6 @@
-# go-web-dev
-for the udemy course - https://www.udemy.com/course/go-programming-language
+### Web Development w/ Google’s Go (golang) Programming Language
+### Udemy course
+
+[Web Development w/ Google’s Go (golang) Programming Language](https://www.udemy.com/course/go-programming-language/)
+
+---
