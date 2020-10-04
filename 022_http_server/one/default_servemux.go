@@ -31,7 +31,7 @@ func main() {
 
 	http.HandleFunc("/", indexHandler)
 
-	http.HandleFunc("/me", meHandler)
+	http.Handle("/me", http.HandlerFunc(meHandler))
 
 	http.HandleFunc("/dog", dogHandler)
 
