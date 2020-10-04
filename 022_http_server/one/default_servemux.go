@@ -1,12 +1,22 @@
 package main
 
 import (
+	"html/template"
 	"io"
+	"log"
 	"net/http"
 )
 
 func indexHandler(w http.ResponseWriter, req *http.Request) {
-	io.WriteString(w, "We are at /")
+	tpl, err := template.ParseFiles("tpl.gohtml")
+	if err != nil {
+		log.Fatalln("error parsing template", err)
+	}
+
+	err = tpl.ExecuteTemplate(w, "tpl.gohtml", "Maria")
+	if err != nil {
+		log.Fatalln("error executing template", err)
+	}
 }
 
 func meHandler(w http.ResponseWriter, req *http.Request) {
