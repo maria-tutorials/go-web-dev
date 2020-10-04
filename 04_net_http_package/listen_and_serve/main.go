@@ -1,17 +1,18 @@
 package main
 
 import (
-	"fmt"
+	"io"
+	"log"
 	"net/http"
 )
 
-type icecream int
-
-func (m icecream) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "We still don't have an HandleFunc so this will do")
-}
-
 func main() {
-	var d icecream
-	http.ListenAndServe(":8080", d)
+	// Hello world, the web server
+
+	helloHandler := func(w http.ResponseWriter, req *http.Request) {
+		io.WriteString(w, "Hello, world!\n")
+	}
+
+	http.HandleFunc("/", helloHandler)
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
