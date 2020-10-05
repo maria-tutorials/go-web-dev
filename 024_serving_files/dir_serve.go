@@ -22,12 +22,26 @@ func main() {
 
 	http.HandleFunc("/", indexHandler)
 
+	http.HandleFunc("/sample/", sample)
+
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 func indexHandler(w http.ResponseWriter, req *http.Request) {
-	err := tpl.Execute(w, nil)
+	err := tpl.ExecuteTemplate(w, "index.gohtml", nil)
 	if err != nil {
 		log.Fatalln("template didn't execute: ", err)
+	}
+}
+
+func sample(w http.ResponseWriter, req *http.Request) {
+	err := tpl.ExecuteTemplate(w, "sample.gohtml", "Maria")
+	HandleError(w, err)
+}
+
+func HandleError(w http.ResponseWriter, err error) {
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Fatalln(err)
 	}
 }
