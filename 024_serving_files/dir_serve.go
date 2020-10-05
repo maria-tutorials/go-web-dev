@@ -13,7 +13,12 @@ func init() {
 }
 
 func main() {
-	http.Handle("/public/", http.FileServer(http.Dir(".")))
+
+	fs := http.FileServer(http.Dir("."))
+
+	http.Handle("/public/", fs)
+
+	http.Handle("/resources/", http.StripPrefix("/resources", fs))
 
 	http.HandleFunc("/", indexHandler)
 
