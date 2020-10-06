@@ -16,6 +16,7 @@ func main() {
 	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/seeOther", seeOtherHandler)
 	http.HandleFunc("/tempRedirect", tempRedirectHandler)
+	http.HandleFunc("/permRedirect", permRedirectHandler)
 	http.HandleFunc("/barred", barred)
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 	http.ListenAndServe(":8080", nil)
@@ -33,6 +34,11 @@ func seeOtherHandler(w http.ResponseWriter, req *http.Request) {
 func tempRedirectHandler(w http.ResponseWriter, req *http.Request) {
 	fmt.Println("Your request method at /tempRedirect:", req.Method)
 	http.Redirect(w, req, "/", http.StatusTemporaryRedirect)
+}
+
+func permRedirectHandler(w http.ResponseWriter, req *http.Request) {
+	fmt.Println("Your request method at /permRedirect:", req.Method)
+	http.Redirect(w, req, "/", http.StatusPermanentRedirect)
 }
 
 func barred(w http.ResponseWriter, req *http.Request) {
