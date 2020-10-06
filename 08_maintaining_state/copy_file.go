@@ -16,10 +16,9 @@ func main() {
 }
 
 func foo(w http.ResponseWriter, req *http.Request) {
-	var s string
 
 	if req.Method == http.MethodPost {
-		s = handleFile(w, req)
+		handleFile(w, req)
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -31,12 +30,12 @@ func foo(w http.ResponseWriter, req *http.Request) {
 	<br>`)
 }
 
-func handleFile(w http.ResponseWriter, req *http.Request) string {
+func handleFile(w http.ResponseWriter, req *http.Request) {
 	// open
 	f, h, err := req.FormFile("q")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return ""
+		return
 	}
 	defer f.Close()
 
@@ -47,12 +46,12 @@ func handleFile(w http.ResponseWriter, req *http.Request) string {
 	bs, err := ioutil.ReadAll(f)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return ""
+		return
 	}
 
 	storeFile(w, h.Filename, bs)
 
-	return string(bs)
+	//return string(bs)
 }
 
 func storeFile(w http.ResponseWriter, filename string, bs []byte) {
