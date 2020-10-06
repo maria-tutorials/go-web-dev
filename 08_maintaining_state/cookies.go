@@ -7,11 +7,17 @@ import (
 )
 
 func main() {
-	http.HandleFunc("/", set)
+	http.HandleFunc("/", index)
+	http.HandleFunc("/set", set)
 	http.HandleFunc("/read", read)
 	http.HandleFunc("/abundance", abundance)
+	http.HandleFunc("/expire", expire)
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 	http.ListenAndServe(":8080", nil)
+}
+
+func index(w http.ResponseWriter, req *http.Request) {
+	fmt.Fprintln(w, `<h1><a href="/set">set a my-cookie</a></h1>`)
 }
 
 func set(w http.ResponseWriter, req *http.Request) {
@@ -26,8 +32,10 @@ func set(w http.ResponseWriter, req *http.Request) {
 func read(w http.ResponseWriter, req *http.Request) {
 	c1, err := req.Cookie("my-cookie")
 	if err != nil {
+		http.Redirect(w, req, "/set", http.StatusSeeOther)
 		log.Println(err)
 	} else {
+		fmt.Fprintf(w, `<h1>Your Cookie:<br>%v</h1><h1><a href="/expire">expire</a></h1>`, c1)
 		fmt.Fprintln(w, "YOUR COOKIE #1:", c1)
 	}
 
@@ -44,6 +52,8 @@ func read(w http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Fprintln(w, "YOUR COOKIE #3:", c3)
 	}
+
+	fmt.Fprintf(w, `<h1>Your Cookie:<br>%v</h1><h1><a href="/expire">expire</a></h1>`, c1)
 }
 
 func abundance(w http.ResponseWriter, req *http.Request) {
@@ -60,4 +70,15 @@ func abundance(w http.ResponseWriter, req *http.Request) {
 	})
 
 	fmt.Fprintln(w, "COOKIE PARTYYYY - CHECK THE BROWSER")
+}
+
+func expire(w http.ResponseWriter, req *http.Request) {
+	c, err := req.Cookie("my-cookie")
+	if err != nil {
+		http.Redirect(w, req, "/set", http.StatusSeeOther)
+		return
+	}
+	c.MaxAge = -1 // delete cookie
+	http.SetCookie(w, c)
+	http.Redirect(w, req, "/", http.StatusSeeOther)
 }
