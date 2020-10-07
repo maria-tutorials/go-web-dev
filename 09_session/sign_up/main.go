@@ -14,6 +14,7 @@ type user struct {
 	Password []byte
 	First    string
 	Last     string
+	Role     string
 }
 
 var tpl *template.Template
@@ -22,10 +23,6 @@ var dbSessions = map[string]string{}
 
 func init() {
 	tpl = template.Must(template.ParseGlob("templates/*"))
-
-	//test user
-	bs, _ := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.MinCost)
-	dbUsers["test@test.com"] = user{"test@test.com", bs, "Admin", "Administrator"}
 }
 
 func main() {
@@ -50,6 +47,12 @@ func bar(w http.ResponseWriter, req *http.Request) {
 		http.Redirect(w, req, "/", http.StatusSeeOther)
 		return
 	}
+
+	if u.Role != "007" {
+		http.Error(w, "no can do sonny", http.StatusForbidden)
+		return
+	}
+
 	tpl.ExecuteTemplate(w, "bar.gohtml", u)
 }
 
@@ -64,6 +67,7 @@ func signup(w http.ResponseWriter, req *http.Request) {
 		p := req.FormValue("password")
 		f := req.FormValue("firstname")
 		l := req.FormValue("lastname")
+		r := req.FormValue("role")
 
 		if _, ok := dbUsers[un]; ok {
 			http.Error(w, "invalid username", http.StatusForbidden)
@@ -75,7 +79,7 @@ func signup(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
-		u := user{un, bs, l, f}
+		u := user{un, bs, l, f, r}
 		dbUsers[un] = u
 
 		sID, _ := uuid.NewV4()
