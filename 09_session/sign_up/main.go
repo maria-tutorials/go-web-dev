@@ -6,11 +6,12 @@ import (
 	"net/http"
 
 	uuid "github.com/satori/go.uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type user struct {
 	UserName string
-	Password string
+	Password []byte
 	First    string
 	Last     string
 }
@@ -63,7 +64,12 @@ func signup(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		u := user{un, p, l, f}
+		bs, err := bcrypt.GenerateFromPassword([]byte(p), bcrypt.MinCost)
+		if err != nil {
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+		u := user{un, bs, l, f}
 		dbUsers[un] = u
 
 		sID, _ := uuid.NewV4()
