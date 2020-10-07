@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"time"
 
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -17,12 +18,24 @@ type user struct {
 	Role     string
 }
 
+type session struct {
+	un         string
+	lastActive time.Time
+}
+
 var tpl *template.Template
+
 var dbUsers = map[string]user{}
-var dbSessions = map[string]string{}
+
+var dbSessions = map[string]session{}
+var dbSessionsCleaned time.Time
+
+const sessionLenght int = 30
 
 func init() {
 	tpl = template.Must(template.ParseGlob("templates/*"))
+
+	dbSessionsCleaned = time.Now()
 }
 
 func main() {
@@ -37,12 +50,12 @@ func main() {
 }
 
 func index(w http.ResponseWriter, req *http.Request) {
-	u := getUser(req)
+	u := getUser(w, req)
 	tpl.ExecuteTemplate(w, "index.gohtml", u)
 }
 
 func bar(w http.ResponseWriter, req *http.Request) {
-	u := getUser(req)
+	u := getUser(w, req)
 	if !alreadyLoggedIn(req) {
 		http.Redirect(w, req, "/", http.StatusSeeOther)
 		return
@@ -87,8 +100,10 @@ func signup(w http.ResponseWriter, req *http.Request) {
 			Name:  "session",
 			Value: sID.String(),
 		}
+		oreo.MaxAge = sessionLenght
 		http.SetCookie(w, oreo)
-		dbSessions[oreo.Value] = un
+
+		dbSessions[oreo.Value] = session{un, time.Now()}
 
 		http.Redirect(w, req, "/", http.StatusSeeOther)
 		return
@@ -124,9 +139,14 @@ func login(w http.ResponseWriter, req *http.Request) {
 		c := &http.Cookie{
 			Name:  "session",
 			Value: sID.String(),
+			//MaxAge: sessionLenght,
 		}
+
+		c.MaxAge = sessionLenght
 		http.SetCookie(w, c)
-		dbSessions[c.Value] = un
+
+		dbSessions[c.Value] = session{un, time.Now()}
+
 		http.Redirect(w, req, "/", http.StatusSeeOther)
 		return
 	}
@@ -150,6 +170,11 @@ func logout(w http.ResponseWriter, req *http.Request) {
 		MaxAge: -1,
 	}
 	http.SetCookie(w, c)
+
+	//it's a job #sqn
+	if time.Now().Sub(dbSessionsCleaned) > (time.Second * 30) {
+		go cleanSessions()
+	}
 
 	http.Redirect(w, req, "/login", http.StatusSeeOther)
 }
