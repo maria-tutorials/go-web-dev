@@ -29,6 +29,10 @@ func init() {
 
 func main() {
 	http.HandleFunc("/", index)
+
+	//display pictures without /public
+	http.Handle("/public/", http.StripPrefix("/public", http.FileServer(http.Dir("./public"))))
+
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 	http.ListenAndServe(":8080", nil)
 }
@@ -67,7 +71,7 @@ func index(w http.ResponseWriter, req *http.Request) {
 	}
 
 	xs := strings.Split(c.Value, "|")
-	tpl.ExecuteTemplate(w, "index.gohtml", xs)
+	tpl.ExecuteTemplate(w, "index.gohtml", xs[1:]) //remove session_id
 }
 
 func getCookie(w http.ResponseWriter, req *http.Request) *http.Cookie {

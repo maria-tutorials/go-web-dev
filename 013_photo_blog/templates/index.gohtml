@@ -18,5 +18,10 @@
 	<input type="submit">
 </form>
 
+<h4> Uploaded pictures </h4>
+{{range .}}
+    <img src="/public/pictures/{{.}}" width="350px"}>
+{{end}}
+
 </body>
 </html>
