@@ -6,13 +6,15 @@ import (
 	"net/http"
 
 	"./controllers"
+	"gopkg.in/mgo.v2"
 
 	"github.com/julienschmidt/httprouter"
 )
 
 func main() {
 	r := httprouter.New()
-	uc := controllers.NewUserController()
+	//uc := controllers.NewUserController()
+	uc := controllers.NewUserController(getSession())
 
 	r.GET("/", index)
 
@@ -39,4 +41,13 @@ func index(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(s))
+}
+
+func getSession() *mgo.Session {
+	s, err := mgo.Dial("mongodb://localhost")
+
+	if err != nil {
+		panic(err)
+	}
+	return s
 }

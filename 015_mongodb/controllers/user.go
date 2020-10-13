@@ -5,16 +5,20 @@ import (
 	"fmt"
 	"net/http"
 
+	"gopkg.in/mgo.v2"
+
 	"../models"
 
 	"github.com/julienschmidt/httprouter"
 )
 
-type UserController struct{}
+type UserController struct {
+	session *mgo.Session
+}
 
 // NewUserController returns a *UserController, kinda like the express router with module.exports
-func NewUserController() *UserController {
-	return &UserController{}
+func NewUserController(s *mgo.Session) *UserController {
+	return &UserController{s}
 }
 
 // GetUser handles the HTTP GET requests for /user/:id
