@@ -15,7 +15,10 @@ func main() {
 	r := httprouter.New()
 
 	r.GET("/", index)
+
+	r.POST("/user", createUser)
 	r.GET("/user/:id", getUser)
+	r.DELETE("/user/:id", deleteUser)
 
 	fmt.Println("Server started at port 8080")
 	log.Fatal(http.ListenAndServe("localhost:8080", r))
@@ -58,4 +61,20 @@ func getUser(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "%s\n", uj)
+}
+
+func createUser(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
+	u := models.User{}
+
+	json.NewDecoder(req.Body).Decode(&u)
+	uj, _ := json.Marshal(&u) //so we can send it back
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	fmt.Fprintf(w, "%s\n", uj)
+}
+
+func deleteUser(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
+	//TODO: will remove users from db by id
+	w.WriteHeader(http.StatusNotImplemented)
 }
