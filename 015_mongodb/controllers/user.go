@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"gopkg.in/mgo.v2/bson"
+
 	"gopkg.in/mgo.v2"
 
 	"../models"
@@ -23,11 +25,20 @@ func NewUserController(s *mgo.Session) *UserController {
 
 // GetUser handles the HTTP GET requests for /user/:id
 func (uc UserController) GetUser(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
-	u := models.User{
-		ID:     p.ByName("id"),
-		Name:   "FAKE USER",
-		Gender: "fake",
-		Age:    100,
+	id := p.ByName("id")
+
+	if !bson.IsObjectIdHex(id) {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	oid := bson.ObjectIdHex(id)
+
+	u := models.User{}
+
+	if err := uc.session.DB("test").C("users").FindId(oid).One(&u); err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
 	}
 
 	uj, err := json.Marshal(u)
@@ -48,8 +59,17 @@ func (uc UserController) GetUser(w http.ResponseWriter, req *http.Request, p htt
 func (uc UserController) CreateUser(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	u := models.User{}
 
-	json.NewDecoder(req.Body).Decode(&u) //save it in a variable
-	uj, _ := json.Marshal(&u)            //so we can send it back
+	if err := json.NewDecoder(req.Body).Decode(&u); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// create id for db
+	u.ID = bson.NewObjectId()
+	// store in collection
+	uc.session.DB("test").C("users").Insert(u)
+
+	uj, _ := json.Marshal(u)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -58,6 +78,20 @@ func (uc UserController) CreateUser(w http.ResponseWriter, req *http.Request, _ 
 
 // DeleteUser handles the HTTP DELETE requests for /user/:id
 func (uc UserController) DeleteUser(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
-	//TODO: will remove users from db by id
-	w.WriteHeader(http.StatusNotImplemented)
+	id := p.ByName("id")
+
+	if !bson.IsObjectIdHex(id) {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	oid := bson.ObjectIdHex(id)
+
+	if err := uc.session.DB("test").C("users").RemoveId(oid); err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "Deleted user with id %s\n", oid)
 }
