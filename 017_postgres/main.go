@@ -101,7 +101,24 @@ func booksHandler(w http.ResponseWriter, req *http.Request) {
 
 func singleBookHandler(w http.ResponseWriter, req *http.Request) {
 
-	if req.Method != http.MethodGet {
+	if req.Method == http.MethodDelete { //HOW ABOUT A REFACTOR HEIN?
+		isbn := req.FormValue("isbn")
+		if isbn == "" {
+			http.Error(w, http.StatusText(400), http.StatusBadRequest)
+			return
+		}
+
+		_, err := db.Exec("DELETE FROM books WHERE isbn=$1;", isbn)
+		if err != nil {
+			fmt.Println(err)
+			http.Error(w, http.StatusText(500), 500)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, "Book with isbn %s deleted \n", isbn)
+		return
+
+	} else if req.Method != http.MethodGet {
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		return
 	}
