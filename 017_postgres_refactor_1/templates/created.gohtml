@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Create Book</title>
+    <style>
+        html, body, p {
+            padding: 0;
+            border: 0;
+            margin: 0;
+        }
+        body {
+            display: flex;
+            flex-flow: column nowrap;
+            justify-content: center;
+            align-items: center;
+        }
+        .link {
+            color: DarkTurquoise;
+        }
+    </style>
+</head>
+<body>
+
+<p>Created A New Book :D</p>
+
+<p><a href="/books/show?isbn={{.Isbn}}">{{.Isbn}} - {{.Title}} - {{.Author}} {{.Price}}</a></p>
+<p class="link"><a href="/books">All Books</a></p>
+</body>
+</html>
