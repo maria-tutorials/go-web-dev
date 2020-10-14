@@ -8,39 +8,21 @@ import (
 	"../models"
 
 	"github.com/julienschmidt/httprouter"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	uuid "github.com/satori/go.uuid"
 )
 
 type UserController struct {
-	session *mgo.Session
+	mapa map[string]models.User
 }
 
-func NewUserController(s *mgo.Session) *UserController {
-	return &UserController{s}
+func NewUserController(m map[string]models.User) *UserController {
+	return &UserController{m}
 }
 
 func (uc UserController) GetUser(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	// Grab id
 	id := p.ByName("id")
 
-	// Verify id is ObjectId hex representation, otherwise return status not found
-	if !bson.IsObjectIdHex(id) {
-		w.WriteHeader(http.StatusNotFound) // 404
-		return
-	}
-
-	// ObjectIdHex returns an ObjectId from the provided hex representation.
-	oid := bson.ObjectIdHex(id)
-
-	// composite literal
-	u := models.User{}
-
-	// Fetch user
-	if err := uc.session.DB("go-web-dev-db").C("users").FindId(oid).One(&u); err != nil {
-		w.WriteHeader(404)
-		return
-	}
+	u := uc.mapa[id]
 
 	// Marshal provided interface into JSON structure
 	uj, _ := json.Marshal(u)
@@ -55,11 +37,10 @@ func (uc UserController) CreateUser(w http.ResponseWriter, r *http.Request, _ ht
 
 	json.NewDecoder(r.Body).Decode(&u)
 
-	// create bson ID
-	u.ID = bson.NewObjectId()
+	uuid, _ := uuid.NewV4()
+	u.ID = uuid.String()
 
-	// store the user in mongodb
-	uc.session.DB("go-web-dev-db").C("users").Insert(u)
+	uc.mapa[u.ID] = u
 
 	uj, _ := json.Marshal(u)
 
@@ -71,19 +52,8 @@ func (uc UserController) CreateUser(w http.ResponseWriter, r *http.Request, _ ht
 func (uc UserController) DeleteUser(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
 
-	if !bson.IsObjectIdHex(id) {
-		w.WriteHeader(404)
-		return
-	}
-
-	oid := bson.ObjectIdHex(id)
-
-	// Delete user
-	if err := uc.session.DB("go-web-dev-db").C("users").RemoveId(oid); err != nil {
-		w.WriteHeader(404)
-		return
-	}
+	delete(uc.mapa, id)
 
 	w.WriteHeader(http.StatusOK) // 200
-	fmt.Fprint(w, "Deleted user", oid, "\n")
+	fmt.Fprint(w, "Deleted user %s\n", id)
 }

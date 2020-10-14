@@ -1,11 +1,12 @@
 package main
 
 import (
-	"/controllers"
 	"net/http"
 
+	"./controllers"
+	"./models"
+
 	"github.com/julienschmidt/httprouter"
-	"gopkg.in/mgo.v2"
 )
 
 func main() {
@@ -18,13 +19,6 @@ func main() {
 	http.ListenAndServe("localhost:8080", r)
 }
 
-func getSession() *mgo.Session {
-	// Connect to our local mongo
-	s, err := mgo.Dial("mongodb://localhost")
-
-	// Check if connection error, is mongo running?
-	if err != nil {
-		panic(err)
-	}
-	return s
+func getSession() map[string]models.User {
+	return make(map[string]models.User)
 }
