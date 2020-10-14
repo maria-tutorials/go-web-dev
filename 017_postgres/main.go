@@ -35,6 +35,7 @@ type Book struct {
 
 func main() {
 	http.HandleFunc("/books", booksHandler)
+	http.HandleFunc("/books/single", singleBookHandler)
 	http.ListenAndServe(":8080", nil)
 }
 
@@ -80,6 +81,47 @@ func booksHandler(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "%s\n", jbks)
+}
+
+func singleBookHandler(w http.ResponseWriter, req *http.Request) {
+
+	if req.Method != http.MethodGet {
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		return
+	}
+
+	isbn := req.FormValue("isbn")
+	if isbn == "" {
+		http.Error(w, http.StatusText(400), http.StatusBadRequest)
+		return
+	}
+
+	row := db.QueryRow("SELECT * FROM books WHERE isbn = $1", isbn)
+
+	bk := Book{}
+	err := row.Scan(&bk.Isbn, &bk.Title, &bk.Author, &bk.Price)
+	switch {
+	case err == sql.ErrNoRows:
+		fmt.Println(err)
+		http.NotFound(w, req)
+		return
+	case err != nil:
+		fmt.Println(err)
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+
+	jbk, err := json.Marshal(bk)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "%s\n", jbk)
+
 }
 
 // psql
