@@ -20,5 +20,5 @@ func main() {
 }
 
 func getSession() map[string]models.User {
-	return make(map[string]models.User)
+	return models.LoadUserData()
 }

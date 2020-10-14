@@ -41,6 +41,7 @@ func (uc UserController) CreateUser(w http.ResponseWriter, r *http.Request, _ ht
 	u.ID = uuid.String()
 
 	uc.mapa[u.ID] = u
+	models.StoreUserData(uc.mapa)
 
 	uj, _ := json.Marshal(u)
 
@@ -53,7 +54,8 @@ func (uc UserController) DeleteUser(w http.ResponseWriter, r *http.Request, p ht
 	id := p.ByName("id")
 
 	delete(uc.mapa, id)
+	models.StoreUserData(uc.mapa)
 
 	w.WriteHeader(http.StatusOK) // 200
-	fmt.Fprint(w, "Deleted user %s\n", id)
+	fmt.Fprint(w, "Deleted user ", id)
 }
