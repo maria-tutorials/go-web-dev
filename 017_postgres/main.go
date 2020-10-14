@@ -5,11 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
+	"text/template"
 
 	_ "github.com/lib/pq"
 )
 
 var db *sql.DB
+var tpl *template.Template
 
 func init() {
 	var err error
@@ -23,6 +26,8 @@ func init() {
 		panic(err)
 	}
 	fmt.Println("You connected to your database.")
+
+	tpl = template.Must(template.ParseGlob("templates/*.gohtml"))
 }
 
 // Book order and naming matches the table
@@ -34,9 +39,17 @@ type Book struct {
 }
 
 func main() {
+	http.HandleFunc("/", index)
 	http.HandleFunc("/books", booksHandler)
 	http.HandleFunc("/books/single", singleBookHandler)
+	http.HandleFunc("/books/create", booksCreateFormHandler)
+	http.HandleFunc("/books/create/process", booksCreateProcessHandler)
+
 	http.ListenAndServe(":8080", nil)
+}
+
+func index(w http.ResponseWriter, req *http.Request) {
+	http.Redirect(w, req, "/books", http.StatusSeeOther)
 }
 
 func booksHandler(w http.ResponseWriter, req *http.Request) {
@@ -122,6 +135,45 @@ func singleBookHandler(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "%s\n", jbk)
 
+}
+
+func booksCreateFormHandler(w http.ResponseWriter, req *http.Request) {
+	tpl.ExecuteTemplate(w, "create.gohtml", nil)
+}
+
+func booksCreateProcessHandler(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		return
+	}
+
+	bk := Book{}
+	bk.Isbn = req.FormValue("isbn")
+	bk.Title = req.FormValue("title")
+	bk.Author = req.FormValue("author")
+	p := req.FormValue("price")
+
+	// validate form values
+	if bk.Isbn == "" || bk.Title == "" || bk.Author == "" || p == "" {
+		http.Error(w, http.StatusText(400), http.StatusBadRequest)
+		return
+	}
+
+	// handle price
+	f64, err := strconv.ParseFloat(p, 32)
+	if err != nil {
+		http.Error(w, http.StatusText(406)+"Please hit back and enter a number for the price", http.StatusNotAcceptable)
+		return
+	}
+	bk.Price = float32(f64)
+
+	_, err = db.Exec("INSERT INTO books (isbn, title, author, price) VALUES ($1, $2, $3, $4)", bk.Isbn, bk.Title, bk.Author, bk.Price)
+	if err != nil {
+		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
+		return
+	}
+
+	tpl.ExecuteTemplate(w, "created.gohtml", bk)
 }
 
 // psql
