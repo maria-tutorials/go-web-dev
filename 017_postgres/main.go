@@ -45,6 +45,9 @@ func main() {
 	http.HandleFunc("/books/create", booksCreateFormHandler)
 	http.HandleFunc("/books/create/process", booksCreateProcessHandler)
 
+	http.HandleFunc("/books/update", booksUpdateFormHandler)
+	http.HandleFunc("/books/update/process", booksUpdateProcessHandler)
+
 	http.ListenAndServe(":8080", nil)
 }
 
@@ -138,6 +141,11 @@ func singleBookHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func booksCreateFormHandler(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		return
+	}
+
 	tpl.ExecuteTemplate(w, "create.gohtml", nil)
 }
 
@@ -174,6 +182,73 @@ func booksCreateProcessHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	tpl.ExecuteTemplate(w, "created.gohtml", bk)
+}
+
+func booksUpdateFormHandler(w http.ResponseWriter, req *http.Request) {
+
+	if req.Method != http.MethodGet {
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		return
+	}
+
+	isbn := req.FormValue("isbn")
+	if isbn == "" {
+		http.Error(w, http.StatusText(400), http.StatusBadRequest)
+		return
+	}
+
+	row := db.QueryRow("SELECT * FROM books WHERE isbn = $1", isbn)
+
+	bk := Book{}
+	err := row.Scan(&bk.Isbn, &bk.Title, &bk.Author, &bk.Price)
+	switch {
+	case err == sql.ErrNoRows:
+		http.NotFound(w, req)
+		return
+	case err != nil:
+		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
+		return
+	}
+	tpl.ExecuteTemplate(w, "update.gohtml", bk)
+
+}
+
+func booksUpdateProcessHandler(w http.ResponseWriter, req *http.Request) {
+
+	if req.Method != http.MethodPost {
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		return
+	}
+
+	bk := Book{}
+	bk.Isbn = req.FormValue("isbn")
+	bk.Title = req.FormValue("title")
+	bk.Author = req.FormValue("author")
+	p := req.FormValue("price")
+
+	// validate form values
+	if bk.Isbn == "" || bk.Title == "" || bk.Author == "" || p == "" {
+		http.Error(w, http.StatusText(400), http.StatusBadRequest)
+		return
+	}
+
+	// handle price
+	f64, err := strconv.ParseFloat(p, 32)
+	if err != nil {
+		http.Error(w, http.StatusText(406)+"Please hit back and enter a number for the price", http.StatusNotAcceptable)
+		return
+	}
+	bk.Price = float32(f64)
+
+	_, err = db.Exec("UPDATE books SET isbn = $1, title=$2, author=$3, price=$4 WHERE isbn=$1;", bk.Isbn, bk.Title, bk.Author, bk.Price)
+	if err != nil {
+		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "Book with isbn %s updated \n", bk.Isbn)
 }
 
 // psql
